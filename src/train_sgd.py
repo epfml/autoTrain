@@ -7,8 +7,8 @@ from tqdm import tqdm
 from task import Task
 
 
-def train():
-    print("Target test loss: {:.3f}".format(Task.target_test_loss))
+def train(task: Task):
+    print("Target test loss: {:.3f}".format(task.target_test_loss))
 
     task = Task()
     batch_size = task.default_batch_size
@@ -34,4 +34,5 @@ def train():
 
 
 if __name__ == "__main__":
-    train()
+    task = Task()
+    train(task)
