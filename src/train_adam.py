@@ -1,0 +1,52 @@
+#!/usr/bin/env python3
+
+import math
+import os
+
+import torch
+from tqdm import tqdm
+
+from task import Task
+
+
+def train():
+    print("Target test loss: {:.3f}".format(Task.target_test_loss))
+
+    task = Task()
+    batch_size = task.default_batch_size
+
+    learning_rate = 0.001
+    beta1 = 0.9
+    beta2 = 0.999
+    epsilon = 1e-8
+    epsilon = 1e-08
+    weight_decay = 1e-5
+    n_epochs = 10
+
+    # Adam Initialization
+    first_moment = [torch.zeros_like(param) for param in task.state]
+    second_moment = [torch.zeros_like(param) for param in task.state]
+    t = 0
+
+    for epoch in range(n_epochs):
+        print("Epoch {}".format(epoch))
+
+        for batch in tqdm(task.train_iterator(batch_size=batch_size, shuffle=True)):
+            # Get a gradient gradient
+            _, df = task.df(batch)
+
+            # Adam Update
+            t += 1
+            lr = learning_rate * math.sqrt(1 - beta2 ** t) / (1 - beta1 ** t)
+            for m1, m2, variable, grad in zip(first_moment, second_moment, task.state, df):
+                m1 = beta1 * m1 + (1 - beta1) * grad
+                m2 = beta2 * m2 + (1 - beta2) * grad * grad
+                variable.mul_(1 - weight_decay)
+                variable.add_(-learning_rate, m1 / (torch.sqrt(m2 + epsilon)))
+
+        test_loss = task.test(task.state)
+        print("Test loss at epoch {}: {:.3f}".format(epoch, test_loss))
+
+
+if __name__ == "__main__":
+    train()
