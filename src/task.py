@@ -21,8 +21,8 @@ class Task:
     Interface:
         The following methods are exposed to the challenge participants:
             - `train_iterator`: returns an iterator of `Batch`es from the training set,
-            - `f`: evaluate the function value of a `Batch`,
-            - `df`: evaluate the function value of a `Batch` and compute the gradients,
+            - `batchLoss`: evaluate the function value of a `Batch`,
+            - `batchLossAndGradient`: evaluate the function value of a `Batch` and compute the gradients,
             - `test`: compute the test loss of the model on the test set.
         The following attributes are exposed to the challenge participants:
             - `default_batch_size`
@@ -66,7 +66,7 @@ class Task:
 
         Example:
             >>> for batch in task.train_iterator(batch_size=32, shuffle=True):
-            ...     batch_loss, gradients = task.df(batch)
+            ...     batch_loss, gradients = task.batchLossAndGradient(batch)
         """
         train_loader = DataLoader(
             self._train_set, batch_size=batch_size, shuffle=shuffle, num_workers=self._num_workers
@@ -91,14 +91,14 @@ class Task:
 
         return _Iterable()
 
-    def f(self, batch: Batch) -> float:
+    def batchLoss(self, batch: Batch) -> float:
         """
         Evaluate the loss on a batch.
         If the model has batch normalization or dropout, this will run in training mode.
         """
         return self._criterion(self._model(batch._x), batch._y).item()
 
-    def df(self, batch: Batch) -> (float, List[torch.Tensor]):
+    def batchLossAndGradient(self, batch: Batch) -> (float, List[torch.Tensor]):
         """
         Evaluate the loss and its gradients on a batch.
         If the model has batch normalization or dropout, this will run in training mode.

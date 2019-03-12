@@ -31,8 +31,8 @@ def train(task: Task):
         print("Epoch {}".format(epoch))
 
         for batch in tqdm(task.train_iterator(batch_size=batch_size, shuffle=True)):
-            # Get a gradient gradient
-            _, df = task.df(batch)
+            # Get a batch gradient
+            _, df = task.batchLossAndGradient(batch)
 
             # Adam Update
             t += 1
