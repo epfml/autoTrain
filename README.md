@@ -47,7 +47,7 @@ You are required to submit a ZIP file containing:
 - `Dockerfile`: how to build the image containing your dependencies,
 - `report.pdf`: 4 pages (two-columns) report describing your submission.
 
-You can refer to the [submission](./submission) directory for a sample submission.
+You can refer to the [sample-submission](./sample-submission) directory for a sample submission.
 
 ## Quick start
 
