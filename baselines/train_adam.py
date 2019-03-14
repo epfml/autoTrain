@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 
 import math
-import os
 
 import torch
-from tqdm import tqdm
+from tqdm import tqdm as progress_bar
 
-from task import Task
+from auto_train import Task
 
 
 def train(task: Task):
@@ -30,7 +29,7 @@ def train(task: Task):
     for epoch in range(n_epochs):
         print("Epoch {}".format(epoch))
 
-        for batch in tqdm(task.train_iterator(batch_size=batch_size, shuffle=True)):
+        for batch in progress_bar(task.train_iterator(batch_size=batch_size, shuffle=True)):
             # Get a batch gradient
             _, df = task.batchLossAndGradient(batch)
 
@@ -41,7 +40,7 @@ def train(task: Task):
                 m1 = beta1 * m1 + (1 - beta1) * grad
                 m2 = beta2 * m2 + (1 - beta2) * grad * grad
                 variable.mul_(1 - weight_decay)
-                variable.add_(-learning_rate, m1 / (torch.sqrt(m2 + epsilon)))
+                variable.add_(-lr, m1 / (torch.sqrt(m2 + epsilon)))
 
         test_loss = task.test(task.state)
         print("Test loss at epoch {}: {:.3f}".format(epoch, test_loss))
