@@ -1,17 +1,21 @@
 from copy import deepcopy
-from typing import List, Iterable
+from typing import Iterable, List
 
 import torch
 import torchvision
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader, Dataset
 
-__all__ = ["Task"]
+from .metrics import MeanAccumulator
 
 
 class Batch:
     def __init__(self, x, y):
         self._x = x
         self._y = y
+
+
+class Done(Exception):
+    pass
 
 
 class Task:
@@ -34,23 +38,31 @@ class Task:
         See train_sgd.py for an example
     """
 
-    default_batch_size = 128
-    target_test_loss = 0.6
-    _time_to_converge = 10000  # seconds
+    def __init__(
+        self,
+        target_test_loss: float,
+        time_to_converge: float,
+        default_batch_size: int = 128,
+        test_batch_size: int = 100,
+        num_workers: int = 2,
+    ):
+        self.target_test_loss = target_test_loss
+        self.default_batch_size = default_batch_size
 
-    def __init__(self):
+        self._time_to_converge = time_to_converge  # seconds
+        self._test_batch_size = test_batch_size
+        self._num_workers = num_workers
+
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self._num_workers = 2
-        self._test_batch_size = 100
 
         torch.random.manual_seed(42)
-        self._model = ResNet(BasicBlock, [2, 2, 2, 2])
+        self._model = self._create_model()
         self._model.to(self.device)
         self._model.train()
 
         self.state = [parameter.data for parameter in self._model.parameters()]
 
-        self._train_set, self._test_set = _get_dataset()
+        self._train_set, self._test_set = self._get_dataset()
 
         self._test_loader = DataLoader(
             self._test_set,
@@ -60,6 +72,12 @@ class Task:
         )
 
         self._criterion = torch.nn.CrossEntropyLoss()
+
+    def _create_model(self):
+        raise NotImplementedError
+
+    def _get_dataset(self):
+        raise NotImplementedError
 
     def train_iterator(self, batch_size: int, shuffle: bool) -> Iterable[Batch]:
         """Create a dataloader serving `Batch`es from the training dataset.
@@ -142,188 +160,3 @@ class Task:
         for param in self._model.parameters():
             param.grad = None
 
-
-class Done(Exception):
-    pass
-
-
-def _get_dataset(data_root="./data"):
-    """Create train and test datasets"""
-    dataset = torchvision.datasets.CIFAR10
-
-    data_mean = (0.4914, 0.4822, 0.4465)
-    data_stddev = (0.2023, 0.1994, 0.2010)
-
-    transform_train = torchvision.transforms.Compose(
-        [
-            torchvision.transforms.RandomCrop(32, padding=4),
-            torchvision.transforms.RandomHorizontalFlip(),
-            torchvision.transforms.ToTensor(),
-            torchvision.transforms.Normalize(data_mean, data_stddev),
-        ]
-    )
-
-    transform_test = torchvision.transforms.Compose(
-        [
-            torchvision.transforms.ToTensor(),
-            torchvision.transforms.Normalize(data_mean, data_stddev),
-        ]
-    )
-
-    training_set = dataset(root=data_root, train=True, download=True, transform=transform_train)
-    test_set = dataset(root=data_root, train=False, download=True, transform=transform_test)
-
-    return training_set, test_set
-
-
-class ResNet(torch.nn.Module):
-    """
-    Kaiming He, Xiangyu Zhang, Shaoqing Ren, Jian Sun
-    Deep Residual Learning for Image Recognition. arXiv:1512.03385
-    Source: github.com/kuangliu/pytorch-cifar
-    """
-
-    def __init__(self, block, num_blocks, num_classes=10, use_batchnorm=True):
-        super(ResNet, self).__init__()
-        self.in_planes = 64
-        self.use_batchnorm = use_batchnorm
-        self.conv1 = torch.nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
-        self.bn1 = torch.nn.BatchNorm2d(64) if use_batchnorm else torch.nn.Sequential()
-        self.layer1 = self._make_layer(block, 64, num_blocks[0], stride=1)
-        self.layer2 = self._make_layer(block, 128, num_blocks[1], stride=2)
-        self.layer3 = self._make_layer(block, 256, num_blocks[2], stride=2)
-        self.layer4 = self._make_layer(block, 512, num_blocks[3], stride=2)
-        self.linear = torch.nn.Linear(512 * block.expansion, num_classes)
-
-    def _make_layer(self, block, planes, num_blocks, stride):
-        strides = [stride] + [1] * (num_blocks - 1)
-        layers = []
-        for stride in strides:
-            layers.append(block(self.in_planes, planes, stride, self.use_batchnorm))
-            self.in_planes = planes * block.expansion
-        return torch.nn.Sequential(*layers)
-
-    def forward(self, x):
-        out = torch.nn.functional.relu(self.bn1(self.conv1(x)))
-        out = self.layer1(out)
-        out = self.layer2(out)
-        out = self.layer3(out)
-        out = self.layer4(out)
-        out = torch.nn.functional.avg_pool2d(out, 4)
-        out = out.view(out.size(0), -1)
-        out = self.linear(out)
-        return out
-
-
-class BasicBlock(torch.nn.Module):
-    """
-    Kaiming He, Xiangyu Zhang, Shaoqing Ren, Jian Sun
-    Deep Residual Learning for Image Recognition. arXiv:1512.03385
-    Source: github.com/kuangliu/pytorch-cifar
-    """
-
-    expansion = 1
-
-    def __init__(self, in_planes, planes, stride=1, use_batchnorm=True):
-        super(BasicBlock, self).__init__()
-        self.conv1 = torch.nn.Conv2d(
-            in_planes, planes, kernel_size=3, stride=stride, padding=1, bias=False
-        )
-        self.bn1 = torch.nn.BatchNorm2d(planes)
-        self.conv2 = torch.nn.Conv2d(planes, planes, kernel_size=3, stride=1, padding=1, bias=False)
-        self.bn2 = torch.nn.BatchNorm2d(planes)
-
-        if not use_batchnorm:
-            self.bn1 = self.bn2 = torch.nn.Sequential()
-
-        self.shortcut = torch.nn.Sequential()
-        if stride != 1 or in_planes != self.expansion * planes:
-            self.shortcut = torch.nn.Sequential(
-                torch.nn.Conv2d(
-                    in_planes, self.expansion * planes, kernel_size=1, stride=stride, bias=False
-                ),
-                torch.nn.BatchNorm2d(self.expansion * planes)
-                if use_batchnorm
-                else torch.nn.Sequential(),
-            )
-
-    def forward(self, x):
-        out = torch.nn.functional.relu(self.bn1(self.conv1(x)))
-        out = self.bn2(self.conv2(out))
-        out += self.shortcut(x)
-        out = torch.nn.functional.relu(out)
-        return out
-
-
-class Bottleneck(torch.nn.Module):
-    """
-    Kaiming He, Xiangyu Zhang, Shaoqing Ren, Jian Sun
-    Deep Residual Learning for Image Recognition. arXiv:1512.03385
-    Source: github.com/kuangliu/pytorch-cifar
-    """
-
-    expansion = 4
-
-    def __init__(self, in_planes, planes, stride=1, use_batchnorm=True):
-        super(Bottleneck, self).__init__()
-        self.conv1 = torch.nn.Conv2d(in_planes, planes, kernel_size=1, bias=False)
-        self.bn1 = torch.nn.BatchNorm2d(planes)
-        self.conv2 = torch.nn.Conv2d(
-            planes, planes, kernel_size=3, stride=stride, padding=1, bias=False
-        )
-        self.bn2 = torch.nn.BatchNorm2d(planes)
-        self.conv3 = torch.nn.Conv2d(planes, self.expansion * planes, kernel_size=1, bias=False)
-        self.bn3 = torch.nn.BatchNorm2d(self.expansion * planes)
-
-        if not use_batchnorm:
-            self.bn1 = self.bn2 = self.bn3 = torch.nn.Sequential()
-
-        self.shortcut = torch.nn.Sequential()
-        if stride != 1 or in_planes != self.expansion * planes:
-            self.shortcut = torch.nn.Sequential(
-                torch.nn.Conv2d(
-                    in_planes, self.expansion * planes, kernel_size=1, stride=stride, bias=False
-                ),
-                torch.nn.BatchNorm2d(self.expansion * planes)
-                if use_batchnorm
-                else torch.nn.Sequential(),
-            )
-
-    def forward(self, x):
-        out = torch.nn.functional.relu(self.bn1(self.conv1(x)))
-        out = torch.nn.functional.relu(self.bn2(self.conv2(out)))
-        out = self.bn3(self.conv3(out))
-        out += self.shortcut(x)
-        out = torch.nn.functional.relu(out)
-        return out
-
-
-class MeanAccumulator:
-    """
-    Running average of the values that are 'add'ed
-    """
-
-    def __init__(self, update_weight=1):
-        """
-        :param update_weight: 1 for normal, 2 for t-average
-        """
-        self.average = None
-        self.counter = 0
-        self.update_weight = update_weight
-
-    def add(self, value, weight=1):
-        """Add a value to the accumulator"""
-        self.counter += weight
-        if self.average is None:
-            self.average = deepcopy(value)
-        else:
-            delta = value - self.average
-            self.average += (
-                delta * self.update_weight * weight / (self.counter + self.update_weight - 1)
-            )
-            if isinstance(self.average, torch.Tensor):
-                self.average.detach()
-
-    def value(self):
-        """Access the current running average"""
-        return self.average

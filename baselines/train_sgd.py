@@ -4,6 +4,7 @@ import torch
 from tqdm import tqdm as progress_bar
 
 from auto_train import Task
+from auto_train.tasks import ResNetTask
 
 
 def train(task: Task):
@@ -33,5 +34,5 @@ def train(task: Task):
 
 
 if __name__ == "__main__":
-    task = Task()
+    task = ResNetTask()
     train(task)
