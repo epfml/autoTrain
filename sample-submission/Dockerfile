@@ -1,4 +1,5 @@
-FROM jbcdnr/auto-train:0.1.0
+# Your Dockerfile must be based on autotrain/autotrain-env
+FROM autotrain/autotrain-env:latest
 
 # Here you can install external dependencies
 # Dependencies need to be public and available when we build your image
