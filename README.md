@@ -38,19 +38,37 @@ The optimizer can update the weights as many times as desired. Note that one can
 - Use of external communication, pretraining, or manipulation of the provided oracles (such as backprop) is not allowed, only the use of the results (vectors) of the oracles is permitted.
 - We require the winning submission to be publicly released to ensure reproducibility and impact on the community.
 
+## Submission
 
+You are required to submit a ZIP file containing:
 
-## Implementation
+- `README.md`: team name and team members,
+- `train.py`: code of your optimizer,
+- `Dockerfile`: how to build the image containing your dependencies,
+- `report.pdf`: 4 pages (two-columns) report describing your submission.
 
-You are required to submit a `train.py` file defining the function
+You can refer to the [sample-submission](./sample-submission) directory for a sample submission.
+
+## Quick start
+
+You can directly run the sample submission using docker
+
+```bash
+cd submission
+docker build . -t auto-train-sample-submission
+docker run -it auto-train-sample-submission python3 train.py
+```
+
+The submitted `train.py` file must define the function:
 
 ```python
 def train(task: Task):
-	"""Train the (model, dataset) pair associated to the task.
+    """Train the (model, dataset) pair associated to the task.
 
-	Args:
-		task [Task]: task to optimize. Refer to `src/task.py` for available functions.
-	"""
+    Args:
+        task [Task]: task to optimize. Refer to `src/task.py` for available functions.
+    """
 ```
 
-Examples of implementation of `SGD` and `Adam` are provided in `src/train_sgd.py` and `src/train_adam.py`.
+To develop localy you can install the `auto_train` package by running `pip install .` in this directory.
+Examples of implementation of `SGD` and `Adam` are provided in `baselines/train_sgd.py` and `baselines/train_adam.py`.

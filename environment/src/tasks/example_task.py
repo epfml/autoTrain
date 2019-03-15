@@ -1,65 +1,36 @@
 from copy import deepcopy
-from typing import List, Iterable
+from typing import Iterable, List
 
 import torch
 import torchvision
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader, Dataset
 
-__all__ = ["Task"]
-
-
-class Batch:
-    def __init__(self, x, y):
-        self._x = x
-        self._y = y
+from ..metrics import MeanAccumulator
+from ..task import Batch, Done, Task
 
 
-class Task:
+class ExampleTask(Task):
     """
-    Example implementation of an optimization task
-
-    Interface:
-        The following methods are exposed to the challenge participants:
-            - `train_iterator`: returns an iterator of `Batch`es from the training set,
-            - `batchLoss`: evaluate the function value of a `Batch`,
-            - `batchLossAndGradient`: evaluate the function value of a `Batch` and compute the gradients,
-            - `test`: compute the test loss of the model on the test set.
-        The following attributes are exposed to the challenge participants:
-            - `default_batch_size`
-            - `target_test_loss`
-
-        See documentation below for more information.
+    Example implementation of an optimization task.
+    Implements the Task interface.
 
     Example:
-        See train_sgd.py for an example
+        See train_sgd.py for an example of a Task in use.
     """
 
-    default_batch_size = 128
-    target_test_loss = 0.6
-    _time_to_converge = 10000  # seconds
-
     def __init__(self):
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self._num_workers = 2
-        self._test_batch_size = 100
+        self.target_test_loss = 0.6
+        self.default_batch_size = 128
 
-        torch.random.manual_seed(42)
-        self._model = ResNet(BasicBlock, [2, 2, 2, 2])
-        self._model.to(self.device)
-        self._model.train()
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        self._train_set, self._test_set = self._create_dataset()
+        self._test_loader = DataLoader(self._test_set, batch_size=100, shuffle=False, num_workers=1)
+
+        self._model = self._create_model()
+        self._criterion = torch.nn.CrossEntropyLoss()
 
         self.state = [parameter.data for parameter in self._model.parameters()]
-
-        self._train_set, self._test_set = _get_dataset()
-
-        self._test_loader = DataLoader(
-            self._test_set,
-            batch_size=self._test_batch_size,
-            shuffle=False,
-            num_workers=self._num_workers,
-        )
-
-        self._criterion = torch.nn.CrossEntropyLoss()
 
     def train_iterator(self, batch_size: int, shuffle: bool) -> Iterable[Batch]:
         """Create a dataloader serving `Batch`es from the training dataset.
@@ -69,27 +40,15 @@ class Task:
             ...     batch_loss, gradients = task.batchLossAndGradient(batch)
         """
         train_loader = DataLoader(
-            self._train_set, batch_size=batch_size, shuffle=shuffle, num_workers=self._num_workers
+            self._train_set,
+            batch_size=batch_size,
+            shuffle=shuffle,
+            pin_memory=True,
+            drop_last=True,
+            num_workers=2,
         )
 
-        def batcher(datum):
-            x, y = datum
-            x = x.to(self.device)
-            y = y.to(self.device)
-            return Batch(x, y)
-
-        class _Iterable:
-            def __init__(self):
-                pass
-
-            def __len__(self):
-                # useful to specify the length for tqdm
-                return len(train_loader)
-
-            def __iter__(self):
-                return map(batcher, iter(train_loader))
-
-        return _Iterable()
+        return BatchLoader(train_loader, self.device)
 
     def batchLoss(self, batch: Batch) -> float:
         """
@@ -113,13 +72,13 @@ class Task:
         df = [parameter.grad.data for parameter in self._model.parameters()]
         return f.item(), df
 
-    def test(self, state):
+    def test(self, state) -> float:
         """
         Compute the average loss on the test set.
         The task is completed as soon as the output is below self.target_test_loss.
         If the model has batch normalization or dropout, this will run in eval mode.
         """
-        test_model = self._build_test_model(state)
+        test_model = self._create_test_model(state)
         mean_f = MeanAccumulator()
         for x, y in self._test_loader:
             x = x.to(self.device)
@@ -131,7 +90,43 @@ class Task:
             raise Done(mean_f.value())
         return mean_f.value()
 
-    def _build_test_model(self, state):
+    def _create_model(self):
+        """Create a PyTorch module for the model"""
+        torch.random.manual_seed(42)
+        model = ResNet(ResNetBlock, [2, 2, 2, 2])
+        model.to(self.device)
+        model.train()
+        return model
+
+    def _create_dataset(self, data_root="./data"):
+        """Create train and test datasets"""
+        dataset = torchvision.datasets.CIFAR10
+
+        data_mean = (0.4914, 0.4822, 0.4465)
+        data_stddev = (0.2023, 0.1994, 0.2010)
+
+        transform_train = torchvision.transforms.Compose(
+            [
+                torchvision.transforms.RandomCrop(32, padding=4),
+                torchvision.transforms.RandomHorizontalFlip(),
+                torchvision.transforms.ToTensor(),
+                torchvision.transforms.Normalize(data_mean, data_stddev),
+            ]
+        )
+
+        transform_test = torchvision.transforms.Compose(
+            [
+                torchvision.transforms.ToTensor(),
+                torchvision.transforms.Normalize(data_mean, data_stddev),
+            ]
+        )
+
+        training_set = dataset(root=data_root, train=True, download=True, transform=transform_train)
+        test_set = dataset(root=data_root, train=False, download=True, transform=transform_test)
+
+        return training_set, test_set
+
+    def _create_test_model(self, state):
         test_model = deepcopy(self._model)
         test_model.eval()
         for param, new_value in zip(test_model.parameters(), state):
@@ -140,40 +135,29 @@ class Task:
 
     def _zero_grad(self):
         for param in self._model.parameters():
-            param.grad = None
+            if param.grad is not None:
+                param.grad.zero_()
 
 
-class Done(Exception):
-    pass
+class BatchLoader:
+    """
+    Utility that transforms a dataloader that is an iterable over (x, y) tuples
+    into an iterable over Batch() tuples, where its contents are already moved
+    to the selected device.
+    """
 
+    def __init__(self, dataloader, device):
+        self.dataloader = dataloader
+        self.device = device
 
-def _get_dataset(data_root="./data"):
-    """Create train and test datasets"""
-    dataset = torchvision.datasets.CIFAR10
+    def __len__(self):
+        return len(self.dataloader)
 
-    data_mean = (0.4914, 0.4822, 0.4465)
-    data_stddev = (0.2023, 0.1994, 0.2010)
-
-    transform_train = torchvision.transforms.Compose(
-        [
-            torchvision.transforms.RandomCrop(32, padding=4),
-            torchvision.transforms.RandomHorizontalFlip(),
-            torchvision.transforms.ToTensor(),
-            torchvision.transforms.Normalize(data_mean, data_stddev),
-        ]
-    )
-
-    transform_test = torchvision.transforms.Compose(
-        [
-            torchvision.transforms.ToTensor(),
-            torchvision.transforms.Normalize(data_mean, data_stddev),
-        ]
-    )
-
-    training_set = dataset(root=data_root, train=True, download=True, transform=transform_train)
-    test_set = dataset(root=data_root, train=False, download=True, transform=transform_test)
-
-    return training_set, test_set
+    def __iter__(self):
+        for x, y in self.dataloader:
+            x = x.to(self.device)
+            y = y.to(self.device)
+            yield Batch(x, y)
 
 
 class ResNet(torch.nn.Module):
@@ -215,7 +199,7 @@ class ResNet(torch.nn.Module):
         return out
 
 
-class BasicBlock(torch.nn.Module):
+class ResNetBlock(torch.nn.Module):
     """
     Kaiming He, Xiangyu Zhang, Shaoqing Ren, Jian Sun
     Deep Residual Learning for Image Recognition. arXiv:1512.03385
@@ -225,7 +209,7 @@ class BasicBlock(torch.nn.Module):
     expansion = 1
 
     def __init__(self, in_planes, planes, stride=1, use_batchnorm=True):
-        super(BasicBlock, self).__init__()
+        super(ResNetBlock, self).__init__()
         self.conv1 = torch.nn.Conv2d(
             in_planes, planes, kernel_size=3, stride=stride, padding=1, bias=False
         )
@@ -255,7 +239,7 @@ class BasicBlock(torch.nn.Module):
         return out
 
 
-class Bottleneck(torch.nn.Module):
+class ResNetBottleneck(torch.nn.Module):
     """
     Kaiming He, Xiangyu Zhang, Shaoqing Ren, Jian Sun
     Deep Residual Learning for Image Recognition. arXiv:1512.03385
@@ -265,7 +249,7 @@ class Bottleneck(torch.nn.Module):
     expansion = 4
 
     def __init__(self, in_planes, planes, stride=1, use_batchnorm=True):
-        super(Bottleneck, self).__init__()
+        super(ResNetBottleneck, self).__init__()
         self.conv1 = torch.nn.Conv2d(in_planes, planes, kernel_size=1, bias=False)
         self.bn1 = torch.nn.BatchNorm2d(planes)
         self.conv2 = torch.nn.Conv2d(
@@ -296,34 +280,3 @@ class Bottleneck(torch.nn.Module):
         out += self.shortcut(x)
         out = torch.nn.functional.relu(out)
         return out
-
-
-class MeanAccumulator:
-    """
-    Running average of the values that are 'add'ed
-    """
-
-    def __init__(self, update_weight=1):
-        """
-        :param update_weight: 1 for normal, 2 for t-average
-        """
-        self.average = None
-        self.counter = 0
-        self.update_weight = update_weight
-
-    def add(self, value, weight=1):
-        """Add a value to the accumulator"""
-        self.counter += weight
-        if self.average is None:
-            self.average = deepcopy(value)
-        else:
-            delta = value - self.average
-            self.average += (
-                delta * self.update_weight * weight / (self.counter + self.update_weight - 1)
-            )
-            if isinstance(self.average, torch.Tensor):
-                self.average.detach()
-
-    def value(self):
-        """Access the current running average"""
-        return self.average
