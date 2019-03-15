@@ -5,6 +5,12 @@ import torch
 import torchvision
 from torch.utils.data import DataLoader, Dataset
 
+"""
+This file describes the public interface of optimization Tasks
+and implements a ResNet18/Cifar10 optimization task to test your
+optimizer. An example on how to implement the optimizer is in train.py.
+"""
+
 
 class Batch:
     def __init__(self, x, y):
