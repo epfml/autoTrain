@@ -8,13 +8,9 @@ class MeanAccumulator:
     Running average of the values that are 'add'ed
     """
 
-    def __init__(self, update_weight=1):
-        """
-        :param update_weight: 1 for normal, 2 for t-average
-        """
+    def __init__(self):
         self.average = None
         self.counter = 0
-        self.update_weight = update_weight
 
     def add(self, value, weight=1):
         """Add a value to the accumulator"""
@@ -23,9 +19,7 @@ class MeanAccumulator:
             self.average = deepcopy(value)
         else:
             delta = value - self.average
-            self.average += (
-                delta * self.update_weight * weight / (self.counter + self.update_weight - 1)
-            )
+            self.average += delta * weight / self.counter
             if isinstance(self.average, torch.Tensor):
                 self.average.detach()
 

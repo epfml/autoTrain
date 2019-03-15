@@ -1,1 +1,1 @@
-from .resnet_task import ResNetTask
+from .example_task import ExampleTask
