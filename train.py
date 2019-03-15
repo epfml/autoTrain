@@ -5,13 +5,7 @@ import math
 import torch
 from tqdm import tqdm as progress_bar
 
-from autotrain import Task
-from autotrain.tasks import ExampleTask
-
-
-def train(task: Task):
-    print("Target test loss: {:.3f}".format(task.target_test_loss))
-
+def train(task):
     batch_size = task.default_batch_size
 
     learning_rate = 0.001
@@ -48,5 +42,6 @@ def train(task: Task):
 
 
 if __name__ == "__main__":
+    from example_task import ExampleTask
     task = ExampleTask()
     train(task)
