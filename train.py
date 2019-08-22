@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 
+"""
+This is an example submission that implements Adam.
+"""
+
 import math
 
 import torch
-from tqdm import tqdm as progress_bar
+
 
 def train(task):
     batch_size = task.default_batch_size
@@ -24,7 +28,7 @@ def train(task):
     for epoch in range(n_epochs):
         print("Epoch {}".format(epoch))
 
-        for batch in progress_bar(task.train_iterator(batch_size=batch_size, shuffle=True)):
+        for batch in task.train_iterator(batch_size=batch_size, shuffle=True):
             # Get a batch gradient
             _, df = task.batchLossAndGradient(batch)
 
@@ -37,11 +41,14 @@ def train(task):
                 variable.mul_(1 - weight_decay)
                 variable.add_(-lr, m1 / (torch.sqrt(m2 + epsilon)))
 
+        # As soon as you test your model and the test_loss is lower than task.target_test_loss,
+        # your optimizer will be killed and you are done.
         test_loss = task.test(task.state)
         print("Test loss at epoch {}: {:.3f}".format(epoch, test_loss))
 
 
 if __name__ == "__main__":
     from example_task import ExampleTask
+
     task = ExampleTask()
     train(task)
