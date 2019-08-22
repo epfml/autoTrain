@@ -2,3 +2,8 @@
 .pytest_cache/
 data/
 submission/data/
+__pycache__/
+report/*.aux
+report/*.fdb_latexmk
+report/*.fls
+report/*.log

@@ -34,7 +34,7 @@ The optimizer can update the weights as many times as desired. Note that one can
 ### Additional rules
 
 - Each submission should be accompanied by an informative description (commented code, README, and writeup of the approach).
-- Source code of the submission must be provided, along with a Dockerfile to build the container with all necessary dependencies. Code can leverage any external open source libraries as long as all such dependencies are well documented.
+- Source code of the submission must be provided. Your optimizer should be implemented in train.py and not use any external dependencies. 
 - Use of external communication, pretraining, or manipulation of the provided oracles (such as backprop) is not allowed, only the use of the results (vectors) of the oracles is permitted.
 - We require the winning submission to be publicly released to ensure reproducibility and impact on the community.
 
@@ -44,20 +44,14 @@ You are required to submit a ZIP file containing:
 
 - `README.md`: team name and team members,
 - `train.py`: code of your optimizer,
-- `Dockerfile`: how to build the image containing your dependencies,
 - `report.pdf`: 4 pages (two-columns) report describing your submission.
 
 You can refer to the [sample-submission](./sample-submission) directory for a sample submission.
 
 ## Quick start
 
-You can directly run the sample submission using docker
-
-```bash
-cd submission
-docker build . -t auto-train-sample-submission
-docker run -it auto-train-sample-submission python3 train.py
-```
+We will evaluate the submissions on a system with Ubuntu 18.04, Anaconda Python 3.7 and Cuda 10.
+You can use the packages `torch`, `numpy`, `scipy` and any other package available in Anaconda Python.
 
 The submitted `train.py` file must define the function:
 
@@ -69,6 +63,4 @@ def train(task: Task):
         task [Task]: task to optimize. Refer to `src/task.py` for available functions.
     """
 ```
-
-To develop localy you can install the `auto_train` package by running `pip install .` in this directory.
-Examples of implementation of `SGD` and `Adam` are provided in `baselines/train_sgd.py` and `baselines/train_adam.py`.
+An example is provided in `train.py`. Every time you evaluate the model on the test set (`task.test(task.state)`), you are compared againast the target loss and get a chance to win.

@@ -5,24 +5,43 @@ import torch
 import torchvision
 from torch.utils.data import DataLoader, Dataset
 
-from ..metrics import MeanAccumulator
-from ..task import Batch, Done, Task
+"""
+This file describes the public interface of optimization Tasks
+and implements a ResNet18/Cifar10 optimization task to test your
+optimizer. An example on how to implement the optimizer is in train.py.
+"""
 
 
-class ExampleTask(Task):
+class Batch:
+    def __init__(self, x, y):
+        self._x = x
+        self._y = y
+
+
+class ExampleTask:
     """
     Example implementation of an optimization task.
-    Implements the Task interface.
+
+    Interface:
+        The following methods are exposed to the challenge participants:
+            - `train_iterator`: returns an iterator of `Batch`es from the training set,
+            - `batchLoss`: evaluate the function value of a `Batch`,
+            - `batchLossAndGradient`: evaluate the function value of a `Batch` and compute the gradients,
+            - `test`: compute the test loss of the model on the test set.
+        The following attributes are exposed to the challenge participants:
+            - `default_batch_size`
+            - `target_test_loss`
+
+        See documentation below for more information.
 
     Example:
         See train_sgd.py for an example of a Task in use.
     """
 
     def __init__(self):
-        self.target_test_loss = 0.6
-        self.default_batch_size = 128
-
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        self.default_batch_size = 128
 
         self._train_set, self._test_set = self._create_dataset()
         self._test_loader = DataLoader(self._test_set, batch_size=100, shuffle=False, num_workers=1)
@@ -137,6 +156,10 @@ class ExampleTask(Task):
         for param in self._model.parameters():
             if param.grad is not None:
                 param.grad.zero_()
+
+
+class Done(Exception):
+    pass
 
 
 class BatchLoader:
