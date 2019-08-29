@@ -33,20 +33,20 @@ The optimizer can update the weights as many times as desired. Note that one can
 
 ### Additional rules
 
-- Each submission should be accompanied by an informative description (commented code, README, and writeup of the approach).
-- Source code of the submission must be provided. Your optimizer should be implemented in train.py and not use any external dependencies. 
-- Use of external communication, pretraining, or manipulation of the provided oracles (such as backprop) is not allowed, only the use of the results (vectors) of the oracles is permitted.
-- We require the winning submission to be publicly released to ensure reproducibility and impact on the community.
+-   Each submission should be accompanied by an informative description (commented code, README, and writeup of the approach).
+-   Source code of the submission must be provided. Your optimizer should be implemented in train.py and not use any external dependencies.
+-   Use of external communication, pretraining, or manipulation of the provided oracles (such as backprop) is not allowed, only the use of the results (vectors) of the oracles is permitted.
+-   We require the winning submission to be publicly released to ensure reproducibility and impact on the community.
 
 ## Submission
 
 You are required to submit a ZIP file containing:
 
-- `README.md`: team name and team members,
-- `train.py`: code of your optimizer,
-- `report.pdf`: 4 pages (two-columns) report describing your submission.
+-   `README.md`: team name and team members,
+-   `train.py`: code of your optimizer,
+-   `report.pdf`: 4 pages (two-columns) report describing your submission.
 
-You can refer to the [sample-submission](./sample-submission) directory for a sample submission.
+You can refer to [train.py](./train.py) for a sample submission.
 
 ## Quick start
 
