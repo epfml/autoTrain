@@ -11,6 +11,7 @@ import torch
 
 def train(task):
     batch_size = task.default_batch_size
+    target_loss = task.target_test_loss
 
     learning_rate = 0.001
     beta1 = 0.9
