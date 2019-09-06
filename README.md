@@ -22,7 +22,7 @@ all optimizers.
 
 ## Submission
 
-You are required to submit a ZIP file before the deadline to [autotrain@epfl.ch](mailto:autotrain@epfl.ch) containing:
+You are required to submit a ZIP file before the deadline to [autotrain@groupes.epfl.ch](mailto:autotrain@groupes.epfl.ch) containing:
 
 -   `README.md`: team name and team members,
 -   `train.py`: code of your optimizer,
@@ -93,4 +93,4 @@ Every time you evaluate the model on the test set (`task.test(task.state)`), you
 - Marcel Salathé, EPFL
 - Martin Jaggi, EPFL
 
-Contact: autotrain@epfl.ch
+Contact: autotrain@groupes.epfl.ch
