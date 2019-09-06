@@ -15,7 +15,7 @@ all optimizers.
 
 | Date                |                                       |
 |---------------------|---------------------------------------|
-| October 1, 2019                  | Submission window opens  |
+| October 1, 2019                  | Submission interface is stable.<br>We start accepting submissions |
 | December 15, 2019  at 23:59 GMT  | Submission deadline      |
 | January 25-29, 2020 | Applied Machine Learning Days<br>Publication of the results |
 
