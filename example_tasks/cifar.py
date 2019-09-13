@@ -45,7 +45,7 @@ class CifarTask:
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         self.default_batch_size = 128
-        self.target_test_loss = 2.0
+        self.target_test_loss = 0.25
 
         self._train_set, self._test_set = self._create_dataset()
         # self._train_set = torch.utils.data.Subset(
