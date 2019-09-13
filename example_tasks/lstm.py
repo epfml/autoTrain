@@ -104,7 +104,6 @@ class LanguageModelingTask:
         for batch in test_loader:
             with torch.no_grad():
                 prediction, hidden = self._model(batch.x, batch.hidden)
-                print(batch.x.shape, batch.y.shape, prediction.shape)
                 self._hidden_container["hidden"] = hidden
                 losses.append(
                     self._criterion(
