@@ -13,12 +13,11 @@ all optimizers.
 
 ## Timeline
 
-| Date                |                                       |
-|---------------------|---------------------------------------|
-| October 1, 2019                  | Submission interface is stable.<br>We start accepting submissions |
-| December 15, 2019  at 23:59 GMT  | Submission deadline      |
-| January 25-29, 2020 | Applied Machine Learning Days<br>Publication of the results |
-
+| Date                           |                                                                   |
+| ------------------------------ | ----------------------------------------------------------------- |
+| October 1, 2019                | Submission interface is stable.<br>We start accepting submissions |
+| December 15, 2019 at 23:59 GMT | Submission deadline                                               |
+| January 25-29, 2020            | Applied Machine Learning Days<br>Publication of the results       |
 
 ## Submission
 
@@ -30,7 +29,6 @@ You are required to submit a ZIP file before the deadline to [autotrain@groupes.
 
 You can refer to [train.py](./train.py) for a sample submission.
 
-
 ## Rules
 
 ### Evaluation
@@ -39,7 +37,7 @@ The participants are required to submit code for an AutoTrain optimizer which wi
 
 ### Unseen architecture / dataset pairs
 
- The unseen architecture / dataset pairs on which they will be judged will be modifications of the sample architecture / dataset pairs provided beforehand to the participants. Hence, it is sufficient to ensure that the submitted code does not exceed maximum resources on the provided sample architecture / dataset. Most importantly, the number of weights on the unknown network will not exceed the one in the provided example models. Further, the range of the following high level characteristics of the unseen architecture / dataset pair will be of the same order of magnitude as that of their sample counterparts: i) number of parameters, ii) time required for forward pass, iii) time required for backprop, and iv) size of the training data. However, the exact values of each of these characteristics might not match that of any of the provided samples. Further, the architecture of the model, though similar, might not exactly match any of the provided samples.
+The unseen architecture / dataset pairs on which they will be judged will be modifications of the sample architecture / dataset pairs provided beforehand to the participants. Hence, it is sufficient to ensure that the submitted code does not exceed maximum resources on the provided sample architecture / dataset. Most importantly, the number of weights on the unknown network will not exceed the one in the provided example models. Further, the range of the following high level characteristics of the unseen architecture / dataset pair will be of the same order of magnitude as that of their sample counterparts: i) number of parameters, ii) time required for forward pass, iii) time required for backprop, and iv) size of the training data. However, the exact values of each of these characteristics might not match that of any of the provided samples. Further, the architecture of the model, though similar, might not exactly match any of the provided samples.
 
 ### Task interface
 
@@ -50,7 +48,7 @@ The AutoTrain optimizer can access the (train) data via querying consecutive min
 
 The optimizer can update the weights as many times as desired. Access to the interface will be synchronous—multiple simultaneous queries are ignored. The interface is based on PyTorch.
 
-The optimizer can query the test loss via `test_loss = task.test(task.state)`. The current test loss will be compared against the target __only__ when you call this function.
+The optimizer can query the test loss via `test_loss = task.test(task.state)`. The current test loss will be compared against the target **only** when you call this function.
 
 The optimizer also has access to the target test loss `task.target_test_loss`, and a default batch size `task.default_batch_size` which is guaranteed to not exceed memory limits for SGD and Adam.
 
@@ -78,19 +76,20 @@ def train(task: Task):
         task [Task]: task to optimize. Refer to `src/task.py` for available functions.
     """
 ```
-An example is provided in [train.py](./train.py). 
+
+An example is provided in [train.py](./train.py).
 Every time you evaluate the model on the test set (`task.test(task.state)`), you are compared againast the target loss and get a chance to win.
 
 ## Organizers
 
-- Thijs Vogels, EPFL
-- Sai Praneeth Karimireddy, EPFL
-- Jean-Baptiste Cordonnier, EPFL
-- Michael Tschannen, ETH Zürich
-- Fabian Pedregosa, Google
-- Sebastian U. Stich, EPFL
-- Sharada Mohanty, EPFL
-- Marcel Salathé, EPFL
-- Martin Jaggi, EPFL
+-   Thijs Vogels, EPFL
+-   Sai Praneeth Karimireddy, EPFL
+-   Jean-Baptiste Cordonnier, EPFL
+-   Michael Tschannen, ETH Zürich
+-   Fabian Pedregosa, Google
+-   Sebastian U. Stich, EPFL
+-   Sharada Mohanty, EPFL
+-   Marcel Salathé, EPFL
+-   Martin Jaggi, EPFL
 
 Contact: autotrain@groupes.epfl.ch

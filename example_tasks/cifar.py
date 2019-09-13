@@ -1,9 +1,11 @@
 from copy import deepcopy
 from typing import Iterable, List
 
+import numpy as np
 import torch
 import torchvision
 from torch.utils.data import DataLoader, Dataset
+
 
 """
 This file describes the public interface of optimization Tasks
@@ -18,32 +20,40 @@ class Batch:
         self._y = y
 
 
-class ExampleTask:
+class CifarTask:
     """
     Example implementation of an optimization task.
 
     Interface:
         The following methods are exposed to the challenge participants:
             - `train_iterator`: returns an iterator of `Batch`es from the training set,
-            - `batchLoss`: evaluate the function value of a `Batch`,
-            - `batchLossAndGradient`: evaluate the function value of a `Batch` and compute the gradients,
+            - `batch_loss`: evaluate the function value of a `Batch`,
+            - `batch_loss_and_gradient`: evaluate the function value of a `Batch` and compute the gradients,
             - `test`: compute the test loss of the model on the test set.
         The following attributes are exposed to the challenge participants:
             - `default_batch_size`
             - `target_test_loss`
+            - `state` contains a list of current model parameter values
 
         See documentation below for more information.
 
     Example:
-        See train_sgd.py for an example of a Task in use.
+        See /train.py for an example of a Task in use.
     """
 
     def __init__(self):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         self.default_batch_size = 128
+        self.target_test_loss = 2.0
 
         self._train_set, self._test_set = self._create_dataset()
+        # self._train_set = torch.utils.data.Subset(
+        #     self._train_set, np.random.choice(len(self._train_set), 512)
+        # )
+        # self._test_set = torch.utils.data.Subset(
+        #     self._test_set, np.random.choice(len(self._test_set), 500)
+        # )
         self._test_loader = DataLoader(self._test_set, batch_size=100, shuffle=False, num_workers=1)
 
         self._model = self._create_model()
@@ -56,7 +66,7 @@ class ExampleTask:
 
         Example:
             >>> for batch in task.train_iterator(batch_size=32, shuffle=True):
-            ...     batch_loss, gradients = task.batchLossAndGradient(batch)
+            ...     batch_loss, gradients = task.batch_loss_and_gradient(batch)
         """
         train_loader = DataLoader(
             self._train_set,
@@ -69,14 +79,14 @@ class ExampleTask:
 
         return BatchLoader(train_loader, self.device)
 
-    def batchLoss(self, batch: Batch) -> float:
+    def batch_loss(self, batch: Batch) -> float:
         """
         Evaluate the loss on a batch.
         If the model has batch normalization or dropout, this will run in training mode.
         """
         return self._criterion(self._model(batch._x), batch._y).item()
 
-    def batchLossAndGradient(self, batch: Batch) -> (float, List[torch.Tensor]):
+    def batch_loss_and_gradient(self, batch: Batch) -> (float, List[torch.Tensor]):
         """
         Evaluate the loss and its gradients on a batch.
         If the model has batch normalization or dropout, this will run in training mode.
@@ -98,16 +108,17 @@ class ExampleTask:
         If the model has batch normalization or dropout, this will run in eval mode.
         """
         test_model = self._create_test_model(state)
-        mean_f = MeanAccumulator()
+        losses = []
         for x, y in self._test_loader:
             x = x.to(self.device)
             y = y.to(self.device)
             with torch.no_grad():
                 f = self._criterion(test_model(x), y)
-            mean_f.add(f)
-        if mean_f.value() < self.target_test_loss:
-            raise Done(mean_f.value())
-        return mean_f.value()
+            losses.append(f.item())
+        mean_f = np.mean(losses)
+        if mean_f < self.target_test_loss:
+            raise Done(mean_f)
+        return mean_f
 
     def _create_model(self):
         """Create a PyTorch module for the model"""

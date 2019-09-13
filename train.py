@@ -31,7 +31,7 @@ def train(task):
 
         for batch in task.train_iterator(batch_size=batch_size, shuffle=True):
             # Get a batch gradient
-            _, df = task.batchLossAndGradient(batch)
+            _, df = task.batch_loss_and_gradient(batch)
 
             # Adam Update
             t += 1
@@ -49,7 +49,7 @@ def train(task):
 
 
 if __name__ == "__main__":
-    from example_task import ExampleTask
+    from example_tasks import LanguageModelingTask
 
-    task = ExampleTask()
+    task = LanguageModelingTask()
     train(task)
