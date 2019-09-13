@@ -13,7 +13,7 @@ from torch.utils.data import DataLoader
 
 """
 This is another example of a task.
-It is an implementation of language modelling.
+It is an implementation of language modeling.
 The CifarTask is easier to understand and better documented.
 """
 
@@ -27,8 +27,8 @@ class Batch:
 
 class LanguageModelingTask:
     def __init__(self):
-        self.default_batch_size = 32
-        self.target_test_loss = 2.0
+        self.default_batch_size = 64
+        self.target_test_loss = 4.7
 
         self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self._seed = 34534
@@ -84,7 +84,7 @@ class LanguageModelingTask:
         df = [parameter.grad for parameter in self._model.parameters()]
         return f.detach(), df
 
-    def test(self, state_dict=None) -> float:
+    def test(self, state=None) -> float:
         self._hidden_container["hidden"] = self._model.init_hidden(self.default_batch_size)
         test_loader = BatchLoader(
             self.val_loader,
@@ -93,8 +93,8 @@ class LanguageModelingTask:
             hidden_container=self._hidden_container,
         )
 
-        if state_dict:
-            test_model = self._create_test_model(state_dict)
+        if state:
+            test_model = self._create_test_model(state)
         else:
             test_model = self._model
             test_model.eval()
@@ -120,10 +120,11 @@ class LanguageModelingTask:
         model.train()
         return model
 
-    def _create_test_model(self, state_dict):
+    def _create_test_model(self, state):
         test_model = deepcopy(self._model)
-        test_model.load_state_dict(state_dict)
         test_model.eval()
+        for param, new_value in zip(test_model.parameters(), state):
+            param.data = new_value.data
         return test_model
 
     def _zero_grad(self):
@@ -318,6 +319,10 @@ class RNNModel(nn.Module):
             return h.detach()
         else:
             return tuple(self.repackage_hidden(v) for v in h)
+
+
+class Done(Exception):
+    pass
 
 
 ITOS = None  # integer to string
