@@ -104,8 +104,13 @@ class LanguageModelingTask:
         for batch in test_loader:
             with torch.no_grad():
                 prediction, hidden = self._model(batch.x, batch.hidden)
+                print(batch.x.shape, batch.y.shape, prediction.shape)
                 self._hidden_container["hidden"] = hidden
-                losses.append(self._criterion(prediction, batch.y).item())
+                losses.append(
+                    self._criterion(
+                        prediction.view(-1, self._model.ntokens), batch.y.contiguous().view(-1)
+                    ).item()
+                )
 
         mean_f = np.mean(losses)
         if mean_f < self.target_test_loss:
