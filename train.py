@@ -49,7 +49,7 @@ def train(task):
 
 
 if __name__ == "__main__":
-    from example_tasks import LanguageModelingTask
+    from example_tasks import CifarTask
 
-    task = LanguageModelingTask()
+    task = CifarTask()
     train(task)

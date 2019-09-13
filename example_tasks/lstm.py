@@ -25,10 +25,6 @@ class Batch:
         self.hidden = hidden
 
 
-ITOS = None  # integer to string
-STOI = None  # string to integer
-
-
 class LanguageModelingTask:
     def __init__(self):
         self.default_batch_size = 32
@@ -89,7 +85,7 @@ class LanguageModelingTask:
         return f.detach(), df
 
     def test(self, state_dict=None) -> float:
-        self._hidden_container["hidden"] = self._model.init_hidden(self._default_batch_size)
+        self._hidden_container["hidden"] = self._model.init_hidden(self.default_batch_size)
         test_loader = BatchLoader(
             self.val_loader,
             self._device,
@@ -322,3 +318,7 @@ class RNNModel(nn.Module):
             return h.detach()
         else:
             return tuple(self.repackage_hidden(v) for v in h)
+
+
+ITOS = None  # integer to string
+STOI = None  # string to integer
