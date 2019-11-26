@@ -1,0 +1,13 @@
+.caption {
+    color: grey;
+    text-align: right;
+    font-size: .8em;
+}
+
+.caption a {
+    color: grey;
+}
+
+a[href^='mailto']::before {
+    content: '';
+}
