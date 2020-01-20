@@ -13,14 +13,6 @@ open source and bring significant value to practitioners and researchers, by rem
 the need of expensive hyperparameter tuning, and by providing fair benchmarking of
 all optimizers.
 
-## Timeline
-
-| Date                           |                                                                   |
-| ------------------------------ | ----------------------------------------------------------------- |
-| December 1, 2019 at 23:59 GMT  | Start accepting submissions                                       |
-| January 15, 2020 at 23:59 GMT  | Submission deadline                                               |
-| January 25-29, 2020            | Applied Machine Learning Days<br>Publication of the results       |
-
 ## Submission
 
 You are required to submit a ZIP file before the deadline to [autotrain@groupes.epfl.ch](mailto:autotrain@groupes.epfl.ch) containing:
