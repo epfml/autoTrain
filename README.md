@@ -1,6 +1,6 @@
 # AutoTrain Challenge
 
-  **Official challenge website: [epfml.github.io/autoTrain](https://epfml.github.io/autoTrain/)**
+(This design document corresponds to a challenge that was submitted to NeurIPS but not run.)
 
 AutoTrain challenges you to submit optimizers that work reliably on any deep learning task without task-specific tuning.
 It separates AutoML into (1) fully automatic training of a model and (2) model selection, and tackles the first aspect.
